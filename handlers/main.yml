@@ -1,0 +1,6 @@
+ - name: Restart mysql
+   action: service name=mysql state=restarted
+
+ - name: Restart collectd
+   action: service name=collectd state=restarted
+   when: mysql_local_collectd

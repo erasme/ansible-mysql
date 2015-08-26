@@ -1,0 +1,3 @@
+- include: client.yml tags=mysql,mysql-client
+- include: setup.yml tags=mysql,mysql:install
+- include: backup.yml tags=backup,mysql

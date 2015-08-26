@@ -1,0 +1,32 @@
+# List of ips we allow remote mysql root connection
+mysql_admins_ip: []
+
+# Which address we bind to
+mysql_bind_address: "127.0.0.1"
+
+# Where do we dump database exports
+mysql_dump_directory: "/tmp/"
+
+# Mysql config
+mysql_general_log: no
+mysql_general_log_file: /var/log/mysql/mysql.log
+mysql_group_concat_max_len: 1024
+mysql_key_buffer: "16M"
+
+# How many backups to keep
+mysql_keep_backup_count: 30
+
+# do we hava a local collectd to configure
+mysql_local_collectd: no
+
+# Use replication ?
+mysql_replication: no
+
+# Root pass
+mysql_root_password: "password"
+
+# Users 
+mysql_users: []
+
+# Version to install
+mysql_version: 5.6

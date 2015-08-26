@@ -1,0 +1,120 @@
+##
+# MySQL database setup.
+#
+#
+- name: Sets root password
+  debconf: 
+    name: "mysql-server"
+    question: "{{ item }}" 
+    value: "{{ mysql_root_password }}" 
+    vtype: 'password'
+  changed_when: false
+  with_items:
+    - 'root_password'
+    - 'root_password_again'
+
+- name: Installs mysql-server
+  apt: pkg=mysql-server-{{ mysql_version }} state=latest
+
+- name: Installs php5-mysql when needed
+  apt: pkg=php5-mysql state=latest
+  when: "'php5' in group_names"
+  notify: Restart apache
+
+- name: Adds mysql config
+  template: src="../templates/my.cnf.j2" dest="/etc/mysql/my.cnf"
+  notify: Restart mysql
+
+- name: Adds Python MySQL support
+  apt: pkg="python-mysqldb" state=latest
+
+# In this case, mysql_user will fail connecting to mysql
+- name: Sets the root password (first attempt / failure is ok)
+  mysql_user: user=root password="{{ mysql_root_password }}" host=localhost
+  ignore_errors: yes
+
+- name: Configures for easy access as root user
+  template: src="../templates/root_my.cnf.j2" dest=/root/.my.cnf
+
+- name: Sets the root password (second attempt)
+  mysql_user: user=root password="{{ mysql_root_password }}" host=localhost
+  ignore_errors: yes
+
+- name: Deletes anonymous MySQL server user for ansible_fqdn
+  mysql_user: user="" host="{{ ansible_fqdn }}" state="absent"
+
+- name: Deletes anonymous MySQL server user for localhost
+  mysql_user: user="" state="absent"
+
+- name: Adds required MySQL users
+  mysql_user: >
+    user="{{ item.name }}"
+    password="{{ item.password }}"
+    priv="{{ item.privs }}"
+  with_items: mysql_users
+
+- name: Adds required MySQL admins with hosts
+  mysql_user: >
+    user="root"
+    password="{{ mysql_root_password }}"
+    host="{{ admins[item].ip }}"
+  with_items: mysql_admins_ip
+  tags: mysql:admins
+
+- name: Adds required MySQL users with hosts
+  mysql_user: >
+    user="{{ item.name }}"
+    password="{{ item.password }}"
+    priv="{{ item.privs }}"
+    host="{{ item.host }}"
+  with_items: mysql_users
+  when: item.host is defined
+
+- name: Secures the MySQL root user for IPV6 localhost (::1)
+  mysql_user: >
+    user="root"
+    password="{{ mysql_root_password }}"
+    host="::1"
+
+- name: Secures the MySQL root user for IPV4 localhost (127.0.0.1)
+  mysql_user: >
+    user="root"
+    password="{{ mysql_root_password }}"
+    host="127.0.0.1"
+
+- name: Secures the MySQL root user for localhost domain (localhost)
+  mysql_user: >
+    user="root"
+    password="{{ mysql_root_password }}"
+    host="localhost"
+
+- name: Secures the MySQL root user for server_hostname domain
+  mysql_user: >
+    user="root"
+    password="{{ mysql_root_password }}"
+    host="{{ ansible_fqdn }}"
+
+- name: Removes the MySQL test database
+  mysql_db: >
+    db=test
+    state=absent
+  notify: Restart mysql
+
+# - name: Adds mysql log rotation config
+#   copy: >
+#     src=../files/mysql-server.logrotate.conf
+#     dest=/etc/logrotate.d/mysql-server
+#     mode=644
+#     owner=root
+#     group=root
+
+- name: Adds collectd config (>=14.04)
+  template: src="../templates/collectd_mysql.conf.j2" dest=/etc/collectd/collectd.conf.d/mysql.conf
+  when: ansible_distribution_version | version_compare('14.04', '>=') and mysql_local_collectd
+  notify: Restart collectd
+
+- name: Adds collectd config (<14.04)
+  template: src= "../templates/collectd_mysql.conf.j2" dest="/etc/collectd/mysql.conf"
+  when: ansible_distribution_version | version_compare('14.04', '<')
+  notify: Restart collectd
+
