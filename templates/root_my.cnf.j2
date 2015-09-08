@@ -1,7 +1,8 @@
-#
-# {{ ansible_managed }}
-#
+############################################
+#  Ansible Managed                         #
+#  ansible-mysql/templates/root_my.cnf.j2  #
+############################################
 
 [client]
-user=root
-pass={{ mysql_root_password }}
+user     = root
+password = {{ mysql_root_password }}
