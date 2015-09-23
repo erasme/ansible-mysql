@@ -81,6 +81,7 @@
     user="root"
     password="{{ mysql_root_password }}"
     host="127.0.0.1"
+  ignore_errors: true
 
 - name: Secures the MySQL root user for localhost domain (localhost)
   mysql_user: >
